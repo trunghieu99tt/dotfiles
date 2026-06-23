@@ -35,12 +35,14 @@ link() {
   fi
 }
 
-# home/* -> ~/*
-for f in "$HOME_SRC"/.*; do
+# home/* -> ~/*  (dotglob so hidden files like .zshrc are included too)
+shopt -s dotglob nullglob
+for f in "$HOME_SRC"/*; do
   base="$(basename "$f")"
   [[ "$base" == "." || "$base" == ".." ]] && continue
   link "$f" "$HOME/$base"
 done
+shopt -u dotglob nullglob
 
 echo
 echo "Done. Backups (if any) are in: $BACKUP_DIR"
