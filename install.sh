@@ -10,7 +10,6 @@ set -euo pipefail
 
 DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HOME_SRC="$DOTFILES_DIR/home"
-CONFIG_SRC="$DOTFILES_DIR/config"
 BACKUP_DIR="$HOME/.dotfiles-backup/$(date +%Y%m%d-%H%M%S)"
 
 DRY=false
@@ -36,18 +35,11 @@ link() {
   fi
 }
 
-# 1) home/* -> ~/*
+# home/* -> ~/*
 for f in "$HOME_SRC"/.*; do
   base="$(basename "$f")"
   [[ "$base" == "." || "$base" == ".." ]] && continue
   link "$f" "$HOME/$base"
-done
-
-# 2) config/* -> ~/.config/*
-mkdir -p "$HOME/.config"
-for d in "$CONFIG_SRC"/*; do
-  base="$(basename "$d")"
-  link "$d" "$HOME/.config/$base"
 done
 
 echo

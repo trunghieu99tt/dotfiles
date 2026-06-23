@@ -14,11 +14,6 @@ home/      # files that live in ~ (symlinked to $HOME)
   .p10k.zsh      # Powerlevel10k prompt theme
   .gitconfig     # Git user config
   .yarnrc        # Yarn config
-
-config/    # files that live in ~/.config (symlinked to ~/.config)
-  nvim/    # Neovim config
-  zed/     # Zed editor settings, themes, snippets
-  jgit/    # jgit config
 ```
 
 ## Install
@@ -37,6 +32,5 @@ cd ~/code/dotfiles
 - Secrets and machine-specific files are intentionally **not** tracked:
   shell histories, `~/.claude.json`, `~/.config/github-copilot` (auth tokens),
   `.zcompdump`, and `.viminfo`.
-- Neovim's upstream `.git` was stripped so this repo owns the config.
 - After installing, restart your terminal (and WezTerm with `Cmd+Q`) to pick up
   the new configs.

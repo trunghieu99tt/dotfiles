@@ -13,6 +13,3 @@ config/nvim/.netrwhist
 # Editor/OS noise
 *.swp
 *~
-
-# Zed binary prompt-library DB (runtime state)
-config/zed/prompts/*.mdb/
