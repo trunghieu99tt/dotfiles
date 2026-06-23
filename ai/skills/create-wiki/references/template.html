@@ -416,6 +416,50 @@
     padding-top: 8px;
   }
 
+  /* --- Decision box (Why / Alternatives / Fit / Tradeoff) --- */
+  .decision-box {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-bottom: 16px;
+  }
+  .decision-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .decision-row {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    margin-bottom: 10px;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  .decision-row:last-child { margin-bottom: 0; }
+  .decision-row > div { color: var(--text-muted); flex: 1; }
+  .decision-label {
+    flex-shrink: 0;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    min-width: 96px;
+    text-align: center;
+    margin-top: 1px;
+  }
+  .decision-label.what { background: var(--bg-tertiary); color: var(--text-muted); }
+  .decision-label.why { background: var(--blue-surface); color: var(--blue); }
+  .decision-label.alt { background: var(--purple-surface); color: var(--purple); }
+  .decision-label.fit { background: var(--green-surface); color: var(--green); }
+  .decision-label.cost { background: var(--orange-surface); color: var(--orange); }
+
   /* --- Inline source reference --- */
   .source-ref {
     display: inline-block;
