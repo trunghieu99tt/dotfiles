@@ -1,0 +1,15 @@
+# Ignore secrets / machine-specific / generated files
+*.local
+*_history
+.DS_Store
+
+# Zsh caches
+.zcompdump*
+.zsh_sessions/
+
+# Nvim runtime/plugin state (config tracked, state ignored)
+config/nvim/.netrwhist
+
+# Editor/OS noise
+*.swp
+*~
