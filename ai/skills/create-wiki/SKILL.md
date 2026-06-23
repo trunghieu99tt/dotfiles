@@ -1,312 +1,397 @@
 ---
 name: create-wiki
-description: Deep-investigate a codebase and generate a single-page project wiki at .docs/index.html. Use this skill whenever the user asks to "create a wiki", "generate docs", "document this project", "explain this codebase", "make a project wiki", or wants a comprehensive HTML overview of a repository. Also trigger when the user says /create-wiki. Even if the user just says "wiki" in the context of documentation, use this skill.
+description: Deep-investigate a codebase and generate a multi-page HTML wiki in .docs/. Each major topic gets its own dedicated page with deep research, Mermaid diagrams, and real code citations. Use this skill whenever the user asks to "create a wiki", "generate docs", "document this project", "explain this codebase", "make a project wiki", or wants a comprehensive HTML overview of a repository. Also trigger when the user says /create-wiki.
 ---
 
 # Create Wiki
 
-Generate a comprehensive single-page wiki for any codebase, saved to `.docs/index.html`. The wiki explains the project's architecture, implementation, and key systems in **explanatory narrative prose** — not terse reference tables or bullet-point dumps.
+Generate a **multi-page HTML wiki** for any codebase, saved to `.docs/`.
+Each major topic gets its own dedicated page with deep research, Mermaid diagrams, real code snippets, and precise file citations — not terse summaries.
+
+## Output Structure
+
+```
+.docs/
+  index.html          - Overview, tech stack, site map with links to all pages
+  architecture.html   - Layered architecture, component map, key abstractions
+  data-flow.html      - End-to-end request/operation lifecycle traces
+  api.html            - Full API/CLI surface with types and handler flow
+  database.html       - Schema, ER diagram, migrations, access patterns
+  services.html       - Core domain logic and business rules deep dive
+  performance.html    - Caching, memory, algorithmic techniques with links
+  testing.html        - Test strategy, frameworks, coverage map
+  deployment.html     - CI/CD pipeline, env vars, Docker, infra topology
+  [additional pages as warranted by the project]
+```
+
+Only generate pages that are genuinely relevant to the project.
+A CLI library doesn't need `api.html` or `deployment.html`.
+A pure frontend app doesn't need `database.html`.
+Use judgment — a focused, deep wiki beats a sprawling one with thin pages.
 
 ## Process
 
-1. **Investigate** — Launch parallel agents to deeply explore the codebase
-2. **Plan** — Decide which sections are relevant based on findings
-3. **Generate** — Build the HTML wiki using the bundled template
-4. **Refine** — Review for completeness and readability
+1. **Scan** - Quick investigation to understand scope and decide the page list
+2. **Deep Research** - One dedicated agent per page, running in parallel
+3. **Generate** - Build each page using the template with Mermaid and cross-links
+4. **Refine** - Verify all links, diagrams, cross-references, and quality
 
 ---
 
-## Step 1: Investigate the Codebase
+## Phase 1: Scan the Codebase
 
-Speed matters here — launch **6–8 parallel exploration agents** to cover the codebase from different angles.
-Before launching, detect the project stack by reading the package manager manifest (package.json, pyproject.toml, go.mod, Cargo.toml, etc.) so you can tailor agent prompts.
+Do this yourself before launching any agents — it takes 3-5 tool calls:
 
-The goal is not a surface-level summary.
-Each agent must dig into actual source files, trace real call chains, and report **specific file paths, class names, function names, and interface names** — not generic descriptions.
-Vague findings like "this service handles business logic" are not acceptable.
+- Read the package manifest (package.json, pyproject.toml, go.mod, Cargo.toml, etc.)
+- Read the README and any CLAUDE.md / AGENTS.md
+- List the top-level source directories
+- Identify the framework, language, and project type
 
-### Agent Prompts (adapt to the project)
-
-**Agent 1 — Overview & Entry Points:**
-Read the package manifest, README, CLAUDE.md / AGENTS.md, and all main entry points.
-Identify the framework, key dependencies, and project purpose.
-Find the top-level architectural boundary: where does execution start, what are the primary modules, and how are they wired together?
-Report exact file paths for entry points and wiring code.
-
-**Agent 2 — Layered Architecture:**
-Map the system into logical layers (e.g. UI / Service / Model / Extension, or Handler / Domain / Repository / Infrastructure).
-For each layer, list the key files and the interfaces or base classes that define the layer's contract.
-Identify which layer owns what responsibility and how layers communicate (direct call, event bus, DI container, etc.).
-Cite exact file paths for each layer boundary.
-
-**Agent 3 — Core Domain Logic:**
-Explore the main source directories (services/, models/, lib/, core/, domain/, src/).
-Understand the primary domain abstractions: what are the key types, what invariants do they enforce, and how does data transform as it flows through them?
-Trace at least one complete end-to-end operation from entry point to storage or output, noting every function and file touched.
-
-**Agent 4 — Data Flow & Request Lifecycle:**
-Pick the most important operation in the system (HTTP request, event, job, command, etc.) and trace it completely.
-Start from where it enters the process, follow it through every layer — routing, validation, business logic, persistence, response — and note each file, function, and key decision point.
-Identify where state is mutated, where errors are handled, and where async boundaries exist.
-
-**Agent 5 — API / Routes / CLI / Extension Points:**
-Explore API routes, controllers, handlers, middleware, CLI command definitions, or plugin/extension registrations.
-Map the full interface surface: endpoints, parameters, auth patterns, response shapes.
-Note which handler calls which service, and where the boundary between input parsing and business logic sits.
-Cite exact file paths for route/command registration.
-
-**Agent 6 — Data & Infrastructure:**
-Investigate database schema, migrations, ORM config, CI/CD pipelines, Dockerfile, configuration loading, environment variables, background jobs, queues, and cron tasks.
-Report the names of every env var, every queue/topic, and every scheduled job, with the file where each is defined or consumed.
-
-**Agent 7 — Performance, Memory & Techniques:**
-Hunt specifically for performance-sensitive code: caching layers, lazy initialization, pooling, memoization, batching, streaming, virtualization, and memory-conscious patterns.
-Look for any algorithmic tricks, non-obvious data structures, lock-free patterns, or techniques borrowed from well-known literature.
-Note benchmark files, perf tests, profiling hooks, or any comments referencing specific papers, blog posts, or external resources.
-For each finding, record the file path, what the technique is, and why it matters for this system.
-
-**Agent 8 — Component Relationships, Testing & Observability:**
-Find the central interfaces, abstract classes, and DI bindings that hold the system together.
-Build a component map: for each major component, list what it depends on and what depends on it.
-Explore test structure and frameworks, coverage patterns, monitoring setup, structured logging, and metrics/tracing instrumentation.
-Note which parts of the system are well-tested vs. lightly tested.
-
-Skip agents that don't apply.
-A CLI tool doesn't need an API routes agent.
-A backend service doesn't need a UI agent.
-A library doesn't need a CI/CD agent.
-Use your judgment.
+From this, decide:
+1. Which pages to generate (the full site map)
+2. What the primary tech stack is (tailor all agent prompts to it)
+3. What the 2-3 most important operations in the system are (for data-flow agents)
 
 ---
 
-## Step 2: Plan Sections
+## Phase 2: Deep Research (Parallel Agents)
 
-Based on investigation results, decide which sections to include in the wiki.
+Launch **one dedicated explore agent per page** in parallel.
+Each agent owns its page completely — it reads actual source files, traces real call chains, and returns specific findings with file paths, function names, and code snippets.
 
-**Always include:**
-- Overview (what the project is, what it does, tech badges)
-- Architecture (layered breakdown with file citations per layer)
-- Data Flow (end-to-end trace of the most important operation)
-- Project Structure (annotated file tree)
-- Development Commands (how to run, build, test)
+Vague findings are not acceptable.
+"This service handles business logic" is not a finding.
+"The `OrderService.placeOrder()` method in `src/services/order.ts:142` validates stock, inserts a DB record via `OrderRepository.create()`, then dispatches an `order.placed` event to the SQS queue defined in `src/queue/topics.ts:18`" is a finding.
 
-**Include if the project has them:**
-- Tech Stack (when there are enough interesting dependencies to warrant a section)
-- Component Relationships (matrix or diagram of how key components depend on each other)
-- Key Flows / Lifecycle (additional processes beyond the primary data flow)
-- API Routes (REST/GraphQL/gRPC endpoints)
-- Background Workers (queues, cron, async processing)
-- Database (schema, migrations, access patterns)
-- Integrations (third-party services and how they're used)
-- Services (core business logic layer, when complex enough)
-- Configuration (env vars, config loading strategy)
-- Performance, Memory & Techniques (caching, pooling, algorithmic tricks, non-obvious optimizations — with links to relevant papers, blog posts, or docs)
-- Monitoring & Metrics (observability stack)
-- CI/CD & Deployment (build pipeline, Docker, deploy process)
-- UI & Pages (frontend pages and components)
-- Testing (test strategy, frameworks, how to run)
+### Agent: Overview & Architecture
 
-Order sections so earlier ones provide context for later ones.
-Architecture before implementation details.
-Core flows before supporting infrastructure.
-Performance section near the end, after the reader understands what is being optimized.
+Investigate:
+- Entry points and bootstrapping/wiring code (exact file paths)
+- The logical layers of the system (e.g. UI / Service / Model / Infrastructure, or Handler / Domain / Repository)
+- For each layer: key files, defining interfaces or base classes, how it communicates with adjacent layers
+- The 5-10 most important types, classes, and interfaces — what invariants do they enforce?
+- Component dependency map: for each major component, what does it depend on and what depends on it?
+- Non-obvious design decisions: why is the system structured this way?
+
+### Agent: Data Flow & Lifecycles
+
+Pick the 2-3 most important operations and trace each completely:
+- Start from where it enters the process (HTTP handler, CLI args, queue consumer, event listener)
+- Follow through every layer: routing, validation, business logic, persistence, response
+- Note every file and function touched, every state mutation, every async boundary, every error branch
+- Identify where the "interesting" logic lives vs. where it's just plumbing
+- Find any retry logic, circuit breakers, or distributed coordination
+
+### Agent: API / CLI / Extension Points
+
+Investigate the full public interface surface:
+- Every route, endpoint, command, or plugin hook with exact registration file and line
+- Handler signatures, middleware chain order, auth patterns
+- Request/response shapes — look at the actual TypeScript types, Go structs, Pydantic models, etc.
+- Which handler calls which service
+- Error handling and status code conventions at the boundary
+- Rate limiting, pagination, versioning if present
+
+### Agent: Database & Data Models
+
+Investigate:
+- Schema definitions — ORM models, migration files, raw SQL schemas
+- Every entity/table/collection: fields, types, constraints, indexes
+- Relationships between entities (FK, references, embedding)
+- Key queries and access patterns (find the hot paths in services/repositories)
+- Migration strategy and any notable schema evolution decisions
+- N+1 query risks or known performance considerations
+
+### Agent: Core Services & Domain Logic
+
+Investigate the business logic layer:
+- What are the core service/module files?
+- What business rules do they enforce? (Be specific — name the rules and the code that enforces them)
+- How do services interact with each other?
+- What are the non-obvious design decisions and their rationale?
+- Are there interesting patterns: event sourcing, CQRS, saga, strategy, etc.?
+- Where are the domain boundaries drawn?
+
+### Agent: Performance, Memory & Techniques
+
+Hunt specifically for:
+- Caching layers: where, what's cached, TTL, eviction strategy, cache key construction
+- Lazy initialization, object pooling, connection pool config
+- Memoization, batching, debouncing, throttling implementations
+- Streaming vs. buffering decisions
+- Non-obvious data structures (tries, bloom filters, ring buffers, etc.)
+- Lock-free patterns, concurrency primitives, worker pools
+- Any code comments referencing papers, blog posts, or benchmarks
+- Benchmark files, perf test suites, or profiling scripts
+
+For every finding: file path, function name, what the technique is, why it matters here, and an external reference link if one exists (Wikipedia, MDN, paper, blog post).
+
+### Agent: Testing & Observability
+
+Investigate:
+- Test directory structure and what types of tests exist (unit / integration / e2e / contract)
+- Testing frameworks, key test utilities, and fixture/factory patterns
+- Which parts of the system have strong coverage vs. gaps
+- How tests are organized: co-located, separate directory, naming conventions
+- Logging setup: library, structured fields, log levels used in practice
+- Metrics: what's instrumented, what's emitted, what's tracked
+- Tracing: distributed trace setup if any
+- Alerting or SLO definitions if present
+
+### Agent: Deployment & Infrastructure
+
+Investigate:
+- Dockerfile and docker-compose (what services, what ports, what volumes)
+- CI/CD pipeline: what stages exist, what each does, what gates a deploy
+- Complete env var catalog: name, required/optional, default, description, where consumed
+- Configuration loading: which file, what precedence order, how validated
+- Background jobs and cron tasks: schedule, what they do, failure handling
+- Health check endpoints, readiness probes, graceful shutdown logic
 
 ---
 
-## Step 3: Generate the Wiki
+## Phase 3: Generate Each Page
 
-### Theming: DESIGN.md or Neutral
+### Template
 
-Before generating, check if a `DESIGN.md` file exists in the project root. This changes how you style the wiki:
+Read `references/template.html` from this skill's directory.
+Use it as the shell for every page — it contains the CSS, the sidebar, theme toggle, and Mermaid initialization.
 
-**If DESIGN.md exists:** Read it and map its design tokens (colors, fonts, spacing, shadows, radii) onto the CSS variables in the template. Replace the neutral defaults with the project's brand colors, typography, and elevation system. For example, if DESIGN.md specifies a primary accent of `#7610C6` and a font of "Neue Haas Grotesk Text", update `--accent`, `--accent-hover`, `--accent-surface`, and the `font-family` in the template accordingly. Apply both light and dark mode tokens if the design system defines them.
+For each page:
+1. Replace `{{PROJECT_NAME}}` with the project name
+2. Replace `{{PAGE_TITLE}}` with the page's title (e.g. "Architecture")
+3. Build the sidebar `<nav>` with links to **all generated pages** — not just sections of the current page.
+   Mark the current page active: `<a href="architecture.html" class="active">Architecture</a>`
+4. Fill `<main>` with the page content
+5. Write to `.docs/<page-name>.html`
 
-**If no DESIGN.md exists:** Use the template as-is — it ships with a neutral gray/slate palette and system fonts that look clean and professional without any brand identity.
+### Mermaid Diagrams
 
-### Using the Template
+Every page must have **at least one Mermaid diagram**.
+The template already includes the Mermaid CDN and initialization — just write `<div class="mermaid">` blocks.
 
-Read the template from `references/template.html` in this skill's directory. It provides the complete HTML/CSS/JS shell — sidebar, theme toggle, responsive layout, and all component styles.
+Choose the right diagram type:
 
-### Using the Template
-
-1. Read the template file
-2. Replace `{{PROJECT_NAME}}` with the project name
-3. Build the sidebar `<nav>` with `<a href="#section-id">` links for each section
-4. Fill the `<main>` element with your content sections
-5. Write the complete file to `.docs/index.html` (create `.docs/` if needed)
-
-### Content Writing Guidelines
-
-The most important thing: **write like you're explaining the project to a smart new team member**, not generating API reference docs.
-Every section should help the reader build a mental model of *why* things work the way they do.
-
-**For each section:**
-1. Open with a paragraph explaining the purpose and context — why does this part of the system exist?
-2. Add detailed subsections with narrative explanations
-3. Use tables and code blocks as *supporting material*, not as the primary content
-4. Use callout boxes for important warnings, gotchas, or non-obvious behavior
-5. Connect to other sections ("this is consumed by the SQS handler described above")
-6. **Cite actual source files** — every significant claim should name the file (and ideally the function or class) where you found it
-
-**For the Architecture section specifically:**
-Present the system as explicit layers.
-For each layer, write a short paragraph describing its responsibility, then list the key files with one-line annotations.
-Show how layers communicate — a flow diagram works well here.
-
-**For the Data Flow section:**
-Trace one complete request or operation end-to-end.
-Name every function and file it passes through.
-Use a flow diagram to show the happy path, then prose to explain branches, error handling, and async steps.
-
-**For the Performance, Memory & Techniques section:**
-Each technique gets its own subsection with: what it is, where it's used (file + function), why it matters for this system, and a link to a reference (MDN, paper, blog post, or docs) if one exists.
-Use technique cards (see HTML components below) to make each entry visually distinct.
-Be specific: "uses a 64-entry LRU cache in `src/cache/query-cache.ts` to avoid redundant DB calls on hot paths" beats "caches query results".
-
-**What to avoid:**
-- Sections that are just a table with no surrounding explanation
-- Bullet-point-only sections with no narrative context
-- Repeating information that's already in another section
-- Generic descriptions that could apply to any project ("this service handles business logic")
-
-**What to aim for:**
-- Concrete references to actual file paths, function names, and class names
-- Explanations of non-obvious design decisions and tradeoffs
-- Descriptions of how data flows between components
-- "Why" before "what" — motivation before mechanics
-
-### HTML Components Available
-
-The template CSS supports these components:
-
-**Flow diagrams** — for multi-step processes:
+**Architecture / component dependencies — flowchart:**
 ```html
-<div class="flow">
-  <div class="flow-steps">
-    <span class="flow-step blue">Step 1</span>
-    <span class="flow-arrow">&rarr;</span>
-    <span class="flow-step green">Step 2</span>
-    <span class="flow-arrow">&rarr;</span>
-    <span class="flow-step purple">Step 3</span>
+<div class="mermaid">
+flowchart TD
+  A[ChatWidget] --> B[IChatService]
+  B --> C[ChatModel]
+  B --> D[ModelRouter]
+  D --> E[OpenAI API]
+  D --> F[Anthropic API]
+</div>
+```
+
+**Request lifecycle — sequence diagram:**
+```html
+<div class="mermaid">
+sequenceDiagram
+  participant C as Client
+  participant R as Router
+  participant S as OrderService
+  participant DB as Database
+  C->>R: POST /orders
+  R->>S: placeOrder(dto)
+  S->>DB: INSERT order
+  DB-->>S: order row
+  S-->>R: OrderResult
+  R-->>C: 201 Created
+</div>
+```
+
+**Database schema — ER diagram:**
+```html
+<div class="mermaid">
+erDiagram
+  USER ||--o{ ORDER : places
+  ORDER ||--|{ LINE_ITEM : contains
+  PRODUCT ||--o{ LINE_ITEM : "included in"
+  ORDER {
+    uuid id PK
+    uuid user_id FK
+    string status
+    timestamp created_at
+  }
+</div>
+```
+
+**Class / interface relationships — class diagram:**
+```html
+<div class="mermaid">
+classDiagram
+  class IChatService {
+    +sendMessage(req) Response
+    +getSession(id) Session
+  }
+  class ChatService {
+    -sessionStore SessionStore
+    -modelRouter ModelRouter
+    +sendMessage(req) Response
+  }
+  IChatService <|.. ChatService
+  ChatService --> SessionStore
+  ChatService --> ModelRouter
+</div>
+```
+
+**State machine — state diagram:**
+```html
+<div class="mermaid">
+stateDiagram-v2
+  [*] --> Pending
+  Pending --> Processing: job picked up
+  Processing --> Complete: success
+  Processing --> Failed: error
+  Failed --> Pending: retry (max 3)
+  Failed --> Dead: retries exhausted
+</div>
+```
+
+**CI/CD pipeline or multi-step process — graph:**
+```html
+<div class="mermaid">
+graph LR
+  Lint --> Test
+  Test --> Build
+  Build --> Push["Push Image"]
+  Push --> Deploy["Deploy Staging"]
+  Deploy --> Smoke["Smoke Tests"]
+  Smoke --> Prod["Deploy Prod"]
+</div>
+```
+
+Use diagrams to show structure and flow, then prose to explain the *why*.
+Never place a diagram without at least a paragraph before it setting context.
+
+### Cross-linking Between Pages
+
+Every page should reference related pages.
+Use the `page-link` component for inline cross-links:
+```html
+<a href="architecture.html" class="page-link">Architecture &rarr;</a>
+```
+
+End every page with a "Related Pages" block:
+```html
+<div class="related-pages">
+  <h3>Related Pages</h3>
+  <div class="related-grid">
+    <a href="data-flow.html" class="related-card">
+      <strong>Data Flow</strong>
+      <span>How requests travel through these layers end-to-end</span>
+    </a>
+    <a href="services.html" class="related-card">
+      <strong>Services</strong>
+      <span>The business logic that each layer calls into</span>
+    </a>
   </div>
 </div>
 ```
-Colors: `blue`, `green`, `orange`, `purple`, `cyan`.
 
-**Callout boxes** — for warnings and notes:
-```html
-<div class="callout info"><strong>Note:</strong> message here</div>
-<div class="callout warn"><strong>Warning:</strong> message here</div>
-```
+### Theming
 
-**File tree** — for project structure (whitespace-preserving):
-```html
-<div class="file-tree">
-<span class="dir">project/</span>
-├── <span class="dir">src/</span>
-│   ├── <span class="file">index.ts</span>   <span class="comment"># Entry point</span>
-│   └── <span class="dir">lib/</span>        <span class="comment"># Utilities</span>
-└── <span class="file">package.json</span>
-</div>
-```
+Check if `DESIGN.md` exists in the project root.
+If it does, read it and map its design tokens onto the CSS variables in the template.
+If not, use the template as-is — it ships with a clean neutral palette.
 
-**Tables** — for structured reference data:
-```html
-<table>
-  <thead><tr><th>Column</th><th>Description</th></tr></thead>
-  <tbody><tr><td>value</td><td>explanation</td></tr></tbody>
-</table>
-```
+### Content Standards
 
-**Component relationship matrix** — for showing how modules depend on each other:
-```html
-<table class="matrix">
-  <thead>
-    <tr><th>Component</th><th>Depends On</th><th>Used By</th><th>Notes</th></tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td><code>ChatService</code></td>
-      <td><code>SessionStore</code>, <code>ModelRouter</code></td>
-      <td><code>ChatWidget</code>, <code>InlineChat</code></td>
-      <td>Owns session lifecycle</td>
-    </tr>
-  </tbody>
-</table>
-```
+Write like you're explaining to a smart new team member who needs to understand *why*, not just *what*.
 
-**Architecture layer block** — for the layered architecture section:
-```html
-<div class="arch-layer">
-  <div class="arch-layer-label blue">UI Layer</div>
-  <div class="arch-layer-files">
-    <code>src/chat/browser/chatWidget.ts</code> — main chat panel<br>
-    <code>src/chat/browser/inlineChat.ts</code> — in-editor chat
-  </div>
-</div>
-```
-Layer label colors: `blue` (UI), `green` (Service), `orange` (Model/Domain), `purple` (Infrastructure/Extension).
+**Required for every page:**
+- Open each major section with a paragraph explaining context and motivation before any code or diagrams
+- Cite actual file paths and function/class names for every significant claim
+- Use Mermaid diagrams to visualize structure, flow, and relationships
+- Use callout boxes for gotchas, non-obvious behavior, and important warnings
+- Connect to other pages where relevant
 
-**Technique card** — for performance / memory / tricks sections:
-```html
-<div class="technique-card">
-  <div class="technique-header">
-    <span class="technique-name">LRU Query Cache</span>
-    <a class="technique-link" href="https://en.wikipedia.org/wiki/Cache_replacement_policies#LRU" target="_blank">Reference &rarr;</a>
-  </div>
-  <p>Short explanation of what the technique does and why it matters here.</p>
-  <div class="technique-source"><code>src/cache/query-cache.ts</code> &mdash; <code>QueryCache.get()</code></div>
-</div>
-```
+**Strictly avoid:**
+- Bullet-point-only sections with no narrative
+- Generic statements that could describe any codebase
+- Diagrams without surrounding prose
+- Sections that restate what's already covered on another page
 
-**Source reference inline** — cite a file next to a claim:
-```html
-<span class="source-ref"><a href="#" title="src/services/auth.ts:42">src/services/auth.ts</a></span>
-```
+### Page Content Guide
 
-**Tags** — for HTTP methods or status labels:
-```html
-<span class="tag tag-green">GET</span>
-<span class="tag tag-blue">POST</span>
-<span class="tag tag-red">DELETE</span>
-<span class="tag tag-orange">PATCH</span>
-<span class="tag tag-purple">SOCKET</span>
-```
+**`index.html` - Overview:**
+- Hero: project name, one-paragraph description, tech badges
+- What problem this solves and for whom
+- A Mermaid flowchart showing the major components at a glance
+- Site map: card grid linking to all pages, each with a one-sentence description
+- Quick start: the 3-5 commands to get running
 
-**Tech badges** — for the hero section:
-```html
-<span class="tech-badge">Next.js</span>
-<span class="tech-badge">PostgreSQL</span>
-```
+**`architecture.html` - Architecture:**
+- Logical layers with an `arch-layer` block per layer (blue=UI, green=Service, orange=Domain, purple=Infrastructure)
+- A Mermaid component diagram showing layer communication
+- Class diagram for the 5-10 key abstractions
+- Component dependency matrix table (component / depends on / used by / notes)
+- Design decisions section: why is it structured this way?
 
-**Code blocks** — for config, schema, or code examples:
-```html
-<pre><code>const config = loadConfig();</code></pre>
-```
+**`data-flow.html` - Data Flow:**
+- One Mermaid sequence diagram per traced operation
+- Step-by-step narrative for each operation, citing every file and function
+- Callout boxes for error paths, retry logic, and async boundaries
+- State mutation map: what data changes at each step
+
+**`api.html` - API / CLI:**
+- Full endpoint/command table: method, path, auth, handler file, description
+- Mermaid sequence diagram for each key endpoint's handler flow
+- Request/response type definitions as code blocks from actual source
+- Auth and middleware chain explanation with a Mermaid diagram
+
+**`database.html` - Database:**
+- Mermaid ER diagram for the full schema
+- Per-entity section: fields, constraints, relationships, notable access patterns
+- Key queries as actual SQL or ORM code lifted from source
+- Migration strategy and schema evolution decisions
+- Index rationale table
+
+**`services.html` - Services:**
+- Per-service section: purpose, public interface, business rules, dependencies
+- Mermaid flowcharts for complex business logic (especially branching flows)
+- Design patterns called out with their rationale
+
+**`performance.html` - Performance:**
+- Technique cards for each optimization with external reference links
+- Mermaid diagrams showing cache topology or batching pipelines
+- Benchmark results or profiling findings if present in source
+- Known bottlenecks or areas flagged for improvement
+
+**`testing.html` - Testing:**
+- Mermaid diagram of the test pyramid (how many of each type)
+- Per-layer coverage: what's tested, what's not
+- Key test utilities and helpers with code examples
+- How to run tests (exact copy-paste commands)
+
+**`deployment.html` - Deployment:**
+- Mermaid graph of the CI/CD pipeline stages
+- Deployment topology diagram (services, ports, dependencies)
+- Complete env var table: name / required / default / description / consumed in
+- Health check and graceful shutdown behavior
 
 ---
 
-## Step 4: Refine
+## Phase 4: Refine
 
-After generating, check for:
-- Sidebar links match section `id` attributes
-- File tree renders correctly (the template has `white-space: pre` on `.file-tree`)
-- No sections are still in terse/listy style — rewrite any that are
-- Cross-references between sections are accurate
-- The hero section is not styled as a card (it should be flat with a bottom border)
-- Footer has the project name and generation date
-- Architecture section has a proper layer breakdown, not just a paragraph
-- Data Flow section traces a real operation with actual file/function names
-- Performance section uses technique cards and every entry has a source file reference
-- Any external links in technique cards open in a new tab (`target="_blank"`)
+After all pages are generated, verify:
+- Every sidebar link resolves to a file that was actually generated
+- Current-page link has `class="active"` on each page
+- Every Mermaid `<div class="mermaid">` block has valid syntax
+- No page has bullet-only sections — every list has surrounding prose
+- Cross-page links use relative paths (`architecture.html`, not `/architecture.html`)
+- Footer on every page shows project name and generation date
+- Technique cards on performance page all have a source file reference
+- ER diagram covers all entities found during research
 
 ---
 
 ## Large Codebases
 
-For large projects where generating everything at once would be unwieldy, break the generation into chunks:
-1. Generate the HTML shell with sidebar, hero, and the first few sections
-2. Add remaining sections in batches of 2–3, using Edit to append before the closing `</main>` tag
-3. Each chunk should be self-contained enough to write in one edit
+For very large pages, generate in chunks to avoid context pressure:
+1. Write the HTML shell, sidebar, and hero for the page first
+2. Add sections in batches of 2-3, using Edit to append before `</main>`
+3. Each batch should be self-contained prose + diagram units
 
-This avoids context pressure from trying to hold the entire wiki in a single generation pass.
+After all pages exist, do one final pass to add cross-links between them.

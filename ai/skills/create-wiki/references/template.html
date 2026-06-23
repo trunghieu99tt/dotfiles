@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{{PROJECT_NAME}} — Wiki</title>
+<title>{{PROJECT_NAME}} — {{PAGE_TITLE}}</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
 <style>
   /* ============================================
      Wiki Template — Neutral style
@@ -103,22 +104,29 @@
     display: flex;
     flex-direction: column;
   }
-  .sidebar-header { margin-bottom: 24px; padding: 0 8px; }
+  .sidebar-header { margin-bottom: 20px; padding: 0 8px; }
   .sidebar-header h3 {
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 700;
     color: var(--text);
     letter-spacing: -0.3px;
+    margin-bottom: 4px;
   }
-  .sidebar-header .version {
+  .sidebar-header .subtitle {
     font-size: 11px;
     color: var(--text-muted);
-    background: var(--bg-tertiary);
-    padding: 2px 8px;
-    border-radius: 4px;
-    margin-left: 8px;
   }
-  .sidebar nav { flex: 1; }
+
+  /* Section dividers in sidebar */
+  .sidebar nav .nav-section {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-subtle);
+    padding: 12px 12px 4px;
+    margin-top: 4px;
+  }
   .sidebar nav a {
     display: block;
     padding: 6px 12px;
@@ -133,6 +141,12 @@
     background: var(--bg-tertiary);
     color: var(--text);
     text-decoration: none;
+  }
+  /* Active page link */
+  .sidebar nav a.active {
+    background: var(--accent-surface);
+    color: var(--accent);
+    font-weight: 600;
   }
 
   /* --- Main content --- */
@@ -161,7 +175,7 @@
   }
   .hero .subtitle { font-size: 16px; color: var(--text-muted); max-width: 640px; line-height: 1.6; }
   .hero .tech-badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; }
-  .hero .tech-badge {
+  .tech-badge {
     font-size: 12px;
     font-weight: 500;
     padding: 4px 12px;
@@ -185,6 +199,12 @@
     font-size: 16px;
     font-weight: 600;
     margin: 28px 0 12px;
+    color: var(--text);
+  }
+  h4 {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 20px 0 8px;
     color: var(--text);
   }
   p { margin-bottom: 16px; color: var(--text); }
@@ -217,6 +237,19 @@
     line-height: 1.6;
   }
 
+  /* --- Mermaid diagrams --- */
+  .mermaid {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px;
+    margin-bottom: 16px;
+    overflow-x: auto;
+    text-align: center;
+  }
+  /* Mermaid dark mode override */
+  html.dark .mermaid svg { filter: invert(0); }
+
   /* --- Tables --- */
   table {
     width: 100%;
@@ -242,7 +275,7 @@
   }
   tbody tr:hover { background: var(--bg-tertiary); }
 
-  /* --- Tags (for HTTP methods, status labels) --- */
+  /* --- Tags (HTTP methods, status labels) --- */
   .tag {
     display: inline-block;
     font-size: 11px;
@@ -277,31 +310,16 @@
     border-left: 4px solid var(--orange);
     color: var(--text);
   }
-
-  /* --- Flow diagrams --- */
-  .flow { margin-bottom: 16px; overflow-x: auto; }
-  .flow-steps {
-    display: flex;
-    align-items: center;
-    gap: 0;
-    padding: 16px;
-    background: var(--bg-secondary);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    white-space: nowrap;
+  .callout.danger {
+    background: var(--red-surface);
+    border-left: 4px solid var(--red);
+    color: var(--text);
   }
-  .flow-step {
-    padding: 8px 16px;
-    border-radius: 6px;
-    font-size: 13px;
-    font-weight: 600;
+  .callout.success {
+    background: var(--green-surface);
+    border-left: 4px solid var(--green);
+    color: var(--text);
   }
-  .flow-step.blue { background: var(--blue-surface); color: var(--blue); }
-  .flow-step.green { background: var(--green-surface); color: var(--green); }
-  .flow-step.orange { background: var(--orange-surface); color: var(--orange); }
-  .flow-step.purple { background: var(--purple-surface); color: var(--purple); }
-  .flow-step.cyan { background: var(--cyan-surface); color: var(--cyan); }
-  .flow-arrow { margin: 0 8px; color: var(--text-subtle); font-size: 18px; }
 
   /* --- File tree --- */
   .file-tree {
@@ -320,7 +338,7 @@
   .file-tree .file { color: var(--text); }
   .file-tree .comment { color: var(--text-muted); font-style: italic; }
 
-  /* --- Cards grid (for tech stack or feature grids) --- */
+  /* --- Cards grid (tech stack, site map) --- */
   .card-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -361,8 +379,9 @@
     letter-spacing: 0.6px;
     padding: 4px 10px;
     border-radius: 4px;
-    min-width: 110px;
+    min-width: 120px;
     text-align: center;
+    line-height: 1.6;
   }
   .arch-layer-label.blue { background: var(--blue-surface); color: var(--blue); }
   .arch-layer-label.green { background: var(--green-surface); color: var(--green); }
@@ -383,28 +402,18 @@
     display: flex;
     align-items: baseline;
     justify-content: space-between;
-    margin-bottom: 8px;
     gap: 12px;
+    margin-bottom: 8px;
   }
-  .technique-name {
-    font-size: 14px;
-    font-weight: 700;
-    color: var(--text);
-  }
-  .technique-link {
-    font-size: 12px;
-    color: var(--blue);
-    white-space: nowrap;
-    flex-shrink: 0;
-  }
-  .technique-link:hover { color: var(--accent-hover); }
+  .technique-name { font-size: 14px; font-weight: 700; color: var(--text); }
+  .technique-link { font-size: 12px; color: var(--blue); white-space: nowrap; flex-shrink: 0; }
+  .technique-link:hover { color: var(--accent-hover); text-decoration: underline; }
   .technique-card p { font-size: 14px; color: var(--text-muted); margin-bottom: 10px; }
   .technique-source {
     font-size: 12px;
     color: var(--text-subtle);
     border-top: 1px solid var(--border);
     padding-top: 8px;
-    margin-top: 4px;
   }
 
   /* --- Inline source reference --- */
@@ -423,13 +432,64 @@
   .source-ref a { color: var(--text-muted); }
   .source-ref a:hover { color: var(--accent-hover); text-decoration: none; }
 
+  /* --- Cross-page link --- */
+  .page-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--blue);
+    background: var(--blue-surface);
+    padding: 3px 10px;
+    border-radius: 4px;
+    border: 1px solid transparent;
+  }
+  .page-link:hover {
+    border-color: var(--blue);
+    text-decoration: none;
+    color: var(--blue);
+  }
+
+  /* --- Related pages block (bottom of each page) --- */
+  .related-pages {
+    margin-top: 56px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+  }
+  .related-pages h3 { margin-top: 0; margin-bottom: 14px; }
+  .related-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px;
+  }
+  .related-card {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    color: var(--text);
+  }
+  .related-card:hover {
+    border-color: var(--border-strong);
+    box-shadow: var(--shadow-card);
+    text-decoration: none;
+    color: var(--text);
+  }
+  .related-card strong { font-size: 13px; font-weight: 600; }
+  .related-card span { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+
   /* --- Responsive --- */
   @media (max-width: 900px) {
     .sidebar { display: none; }
     .main { margin-left: auto; margin-right: auto; padding: 24px 20px 60px; }
   }
   @media (max-width: 600px) {
-    .card-grid { grid-template-columns: 1fr; }
+    .card-grid, .related-grid { grid-template-columns: 1fr; }
     .hero { padding: 24px 0; }
     .hero h1 { font-size: 24px; }
   }
@@ -440,7 +500,7 @@
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
   ::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
 
-  /* --- Theme toggle button --- */
+  /* --- Theme toggle --- */
   .theme-toggle {
     display: flex;
     align-items: center;
@@ -464,17 +524,26 @@
 
 <div class="sidebar">
   <div class="sidebar-header">
-    <h3>{{PROJECT_NAME}} <span class="version">Wiki</span></h3>
+    <h3>{{PROJECT_NAME}}</h3>
+    <div class="subtitle">Wiki</div>
   </div>
   <nav>
-    <!-- SIDEBAR_LINKS -->
-    <!-- Generate <a href="#section-id">Section Name</a> for each section -->
+    <!-- SIDEBAR_NAV -->
+    <!-- One <a> per generated page. Add class="active" on the current page's link. -->
+    <!-- Use a .nav-section label to group related pages. -->
     <!-- Example:
-    <a href="#overview">Overview</a>
-    <a href="#architecture">Architecture</a>
-    <a href="#api-routes">API Routes</a>
-    <a href="#project-structure">Project Structure</a>
-    <a href="#commands">Development</a>
+    <a href="index.html">Overview</a>
+    <div class="nav-section">Architecture</div>
+    <a href="architecture.html" class="active">Architecture</a>
+    <a href="data-flow.html">Data Flow</a>
+    <div class="nav-section">Implementation</div>
+    <a href="services.html">Services</a>
+    <a href="api.html">API</a>
+    <a href="database.html">Database</a>
+    <div class="nav-section">Operations</div>
+    <a href="performance.html">Performance</a>
+    <a href="testing.html">Testing</a>
+    <a href="deployment.html">Deployment</a>
     -->
   </nav>
   <button class="theme-toggle" onclick="toggleTheme()">
@@ -485,54 +554,87 @@
 
 <main class="main">
 
-  <!-- CONTENT_SECTIONS -->
+  <!-- PAGE CONTENT -->
 
-  <!-- Start with the hero section: -->
-  <!--
+  <!-- Hero example (index.html):
   <div class="hero" id="overview">
-    <h1>Project Name</h1>
-    <p class="subtitle">A one-or-two sentence description of what the project does.</p>
+    <h1>{{PROJECT_NAME}}</h1>
+    <p class="subtitle">One or two sentences describing what this project does and for whom.</p>
     <div class="tech-badges">
-      <span class="tech-badge">Technology</span>
-      <span class="tech-badge">Framework</span>
+      <span class="tech-badge">TypeScript</span>
+      <span class="tech-badge">Next.js</span>
+      <span class="tech-badge">PostgreSQL</span>
     </div>
   </div>
   -->
 
-  <!-- Then add content sections: -->
-  <!--
-  <h2 id="section-id">Section Title</h2>
-  <p>Explanatory content...</p>
+  <!-- Mermaid diagram example:
+  <div class="mermaid">
+  flowchart TD
+    A[Entry Point] --> B[Service Layer]
+    B --> C[Domain Logic]
+    C --> D[Repository]
+    D --> E[(Database)]
+  </div>
   -->
 
-  <!-- End with a footer: -->
-  <!--
-  <hr style="margin-top: 48px; border-color: var(--border);">
+  <!-- Related pages block (place at the bottom of every page):
+  <div class="related-pages">
+    <h3>Related Pages</h3>
+    <div class="related-grid">
+      <a href="data-flow.html" class="related-card">
+        <strong>Data Flow</strong>
+        <span>How requests travel through these layers end-to-end</span>
+      </a>
+    </div>
+  </div>
+  -->
+
+  <!-- Footer (every page):
+  <hr style="margin-top: 48px; border: none; border-top: 1px solid var(--border);">
   <p style="text-align: center; color: var(--text-subtle); font-size: 12px; margin-top: 24px;">
-    {{PROJECT_NAME}} &mdash; Generated from codebase analysis
+    {{PROJECT_NAME}} Wiki - generated from codebase analysis
   </p>
   -->
 
 </main>
 
 <script>
-function toggleTheme() {
-  var html = document.documentElement;
-  var isDark = html.classList.toggle('dark');
-  localStorage.setItem('theme', isDark ? 'dark' : 'light');
-  updateToggleButton(isDark);
-}
-function updateToggleButton(isDark) {
-  document.getElementById('themeIcon').innerHTML = isDark ? '&#9788;' : '&#9790;';
-  document.getElementById('themeLabel').textContent = isDark ? 'Light mode' : 'Dark mode';
-}
-(function() {
-  var saved = localStorage.getItem('theme');
-  var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  var isDark = saved === 'dark' || (!saved && prefersDark);
-  if (isDark) document.documentElement.classList.add('dark');
-  document.addEventListener('DOMContentLoaded', function() { updateToggleButton(isDark); });
-})();
+  // Theme toggle
+  function toggleTheme() {
+    var html = document.documentElement;
+    var isDark = html.classList.toggle('dark');
+    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    updateToggleButton(isDark);
+    // Re-render Mermaid diagrams with new theme
+    if (window.mermaid) mermaid.initialize({ startOnLoad: false, theme: isDark ? 'dark' : 'default' });
+  }
+  function updateToggleButton(isDark) {
+    document.getElementById('themeIcon').innerHTML = isDark ? '&#9788;' : '&#9790;';
+    document.getElementById('themeLabel').textContent = isDark ? 'Light mode' : 'Dark mode';
+  }
+  (function() {
+    var saved = localStorage.getItem('theme');
+    var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    var isDark = saved === 'dark' || (!saved && prefersDark);
+    if (isDark) document.documentElement.classList.add('dark');
+    document.addEventListener('DOMContentLoaded', function() { updateToggleButton(isDark); });
+  })();
+
+  // Mermaid initialization
+  document.addEventListener('DOMContentLoaded', function () {
+    var isDark = document.documentElement.classList.contains('dark');
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: isDark ? 'dark' : 'default',
+      themeVariables: {
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontSize: '13px'
+      },
+      flowchart: { curve: 'basis', padding: 20 },
+      sequence: { actorMargin: 60, messageMargin: 40 }
+    });
+  });
 </script>
 </body>
 </html>
